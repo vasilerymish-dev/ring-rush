@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Ring Rush • Demo (v3 vizual + interactiv)</title>
+  <style>
+    :root{--bg:#0f1226;--card:#171a33;--accent:#ffd54d;--text:#e9ecff;--muted:#9aa0c6;--ok:#6ce5b1;--bad:#ff7b7b}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji','Segoe UI Emoji';background:linear-gradient(180deg,#0f1226,#0a0c1a);color:var(--text)}
+    .wrap{max-width:540px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    h1{font-size:22px;margin:0 0 8px}
+    .subtitle{color:var(--muted);font-size:14px;margin-bottom:16px}
+    .btn{display:inline-block;background:var(--accent);color:#1e223f;border:none;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer}
+    .btn.secondary{background:#2a2e55;color:var(--text)}
+    .grid{display:grid;gap:12px}
+    .hud{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:14px;color:var(--muted)}
+    .progress{height:8px;background:#24284f;border-radius:999px;overflow:hidden}
+    .bar{height:100%;width:0;background:linear-gradient(90deg,#ffd54d,#ff9f3f)}
+    .q{font-size:18px;line-height:1.4;margin:12px 0}
+    .hint{font-size:14px;color:var(--muted);margin-top:8px}
+    input[type=number], input[type=text]{width:100%;padding:12px;border-radius:12px;border:1px solid #2a2e55;background:#12142a;color:var(--text)}
+    .result{margin-top:8px;font-weight:700}
+    .ok{color:var(--ok)} .bad{color:var(--bad)}
+    .tag{display:inline-block;background:#24284f;color:#cdd3ff;border-radius:999px;padding:4px 10px;font-size:12px;margin-right:6px}
+    .boss{border:2px solid #444872}
+    .center{text-align:center}
+    .viz{background:#0c0f24;border:1px solid #2a2e55;border-radius:14px;padding:10px;margin:10px 0}
+    .viz .caption{font-size:13px;color:#b9c1ff;margin-bottom:6px}
+    .row{display:flex;gap:6px;justify-content:center}
+    .ring{width:28px;height:28px;border-radius:50%;border:5px solid #ffd54d;background:transparent;box-shadow:inset 0 0 0 6px #0c0f24, 0 1px 3px rgba(0,0,0,.5);transition:transform .1s, filter .1s}
+    .ring.on{filter:brightness(1.2) drop-shadow(0 0 4px #ffdd66)}
+    .group{display:flex;gap:8px;margin:5px 0;cursor:pointer}
+    .group.hit .ring{transform:scale(1.05)}
+    .pill{display:inline-block;background:#24284f;color:#cdd3ff;border-radius:999px;padding:4px 10px;font-size:12px;margin-right:6px}
+    .key{display:inline-block;border:1px solid #464b7a;border-radius:8px;padding:2px 6px;margin-left:6px;color:#cdd3ff}
+    .mini{font-size:12px;color:#9aa0c6}
+    .box{width:22px;height:22px;background:#2a2e55;border:1px solid #3c4272;border-radius:4px}
+    .box.hi{background:#6b78ff}
+    .gridWrap{display:grid;grid-template-columns:repeat(10,22px);gap:3px;justify-content:center}
+    .legend{display:flex;gap:10px;justify-content:center;margin-top:6px}
+    .legend span{display:flex;align-items:center;gap:6px;font-size:12px;color:#cdd3ff}
+    .swatch{width:16px;height:16px;background:#6b78ff;border-radius:3px;border:1px solid #3c4272}
+    .swatch2{width:16px;height:16px;background:#2a2e55;border-radius:3px;border:1px solid #3c4272}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="screen-intro">
+      <h1>Ring Rush • Demo</h1>
+      <div class="subtitle">Antrenament vizual & interactiv (35 min). Fiecare ședință se termină cu un „Final Boss”.</div>
+      <div class="grid">
+        <div><span class="tag">Warm‑up</span><span class="tag">Questuri legate</span><span class="tag">Final Boss</span></div>
+        <button class="btn" id="btnStart">Începe ședința</button>
+        <button class="btn secondary" id="btnHow">Cum funcționează</button>
+      </div>
+    </div>
+
+    <div class="card" id="screen-how" style="display:none">
+      <h1>Cum funcționează</h1>
+      <p>Vezi un <b>desen/animatie</b> pentru fiecare exercițiu. La unele poți <b>atinge</b> obiectele ca să numeri. La final, bați <b>Boss‑ul</b> în timp limitat.</p>
+      <button class="btn" id="btnBack">Înapoi</button>
+    </div>
+
+    <div class="card" id="screen-session" style="display:none">
+      <div class="hud">
+        <div>Item <span id="idx">1</span>/<span id="total">10</span> <span class="mini" id="miniNote"></span></div>
+        <div>Scor: <span id="score">0</span></div>
+      </div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="q" id="prompt"></div>
+      <div class="viz" id="viz" aria-label="ilustrație"></div>
+      <input id="answer" type="text" placeholder="Scrie răspunsul sau folosește desenul" />
+      <div class="hint" id="hint"></div>
+      <div class="result" id="result"></div>
+      <div class="grid" style="margin-top:12px">
+        <button class="btn" id="btnCheck">Verifică</button>
+        <button class="btn secondary" id="btnHint">Arată indiciu</button>
+      </div>
+    </div>
+
+    <div class="card boss" id="screen-boss" style="display:none">
+      <h1>FINAL BOSS</h1>
+      <div class="subtitle">Rezolvă toate item‑urile înainte să se termine timpul!</div>
+      <div class="hud">
+        <div>Rămase: <span id="bossLeft">0</span></div>
+        <div>Timp: <span id="timer">60</span>s</div>
+      </div>
+      <div class="q" id="bossPrompt"></div>
+      <input id="bossAnswer" type="text" placeholder="Răspuns" />
+      <div class="result" id="bossResult"></div>
+      <div class="grid" style="margin-top:12px">
+        <button class="btn" id="btnBossSend">Trimite</button>
+      </div>
+    </div>
+
+    <div class="card center" id="screen-outro" style="display:none">
+      <h1>Bravo! 💫</h1>
+      <p>Scor total: <b id="finalScore"></b></p>
+      <p>Data viitoare deblochezi un trail nou dacă păstrezi 90% corect.</p>
+      <button class="btn" id="btnDone">Gata pe azi</button>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    const $ = (id)=>document.getElementById(id);
+    const screens=['screen-intro','screen-how','screen-session','screen-boss','screen-outro'];
+    function hideAll(){ screens.forEach(id=>$(id).style.display='none'); }
+    function show(id){ hideAll(); $(id).style.display='block'; }
+    function normalize(s){return (s||'').toString().trim().replace(/\\s+/g,' ').replace(/\\s*,\\s*/g,',').toLowerCase()}
+    function updateBar(){ $('bar').style.width=((idx)/items.length*100)+'%'; }
+
+    // --- Visual renderers ---
+    function renderRings(groups=6, per=5){
+      const cont = document.createElement('div');
+      const caption = document.createElement('div'); caption.className='caption';
+      caption.innerHTML = `Atinge grupele de inele (<span id="ringCount">0</span> / ${groups*per})`;
+      cont.appendChild(caption);
+      let total=0;
+      for(let g=0; g<groups; g++){
+        const row = document.createElement('div'); row.className='group row'; row.setAttribute('role','button');
+        row.setAttribute('aria-label', `grup ${g+1}`);
+        const rings=[];
+        for(let i=0;i<per;i++){
+          const r = document.createElement('div');
+          r.className='ring';
+          rings.push(r); row.appendChild(r);
+        }
+        row.addEventListener('click', ()=>{
+          const active = row.classList.toggle('hit');
+          rings.forEach(el=>el.classList.toggle('on', active));
+          total += active ? per : -per;
+          $('ringCount').textContent = total;
+          $('answer').value = total.toString();
+        });
+        cont.appendChild(row);
+      }
+      return cont;
+    }
+
+    function renderBoxes(a=4, b=7){
+      const wrap = document.createElement('div');
+      const caption = document.createElement('div'); caption.className='caption';
+      caption.innerHTML = `Două aranjări diferite: <b>${a}×${b}</b> și <b>${b}×${a}</b> (comutativitate)`;
+      wrap.appendChild(caption);
+
+      const row1 = document.createElement('div'); row1.className='row'; row1.style.flexWrap='wrap'; row1.style.justifyContent='center'; row1.style.gap='3px';
+      row1.style.width=(b*26)+'px';
+      for(let i=0;i<a*b;i++){ const box=document.createElement('div'); box.className='box'; row1.appendChild(box); }
+      wrap.appendChild(row1);
+
+      const row2 = document.createElement('div'); row2.className='row'; row2.style.flexWrap='wrap'; row2.style.justifyContent='center'; row2.style.gap='3px'; row2.style.marginTop='8px';
+      row2.style.width=(a*26)+'px';
+      for(let i=0;i<a*b;i++){ const box=document.createElement('div'); box.className='box hi'; row2.appendChild(box); }
+      wrap.appendChild(row2);
+      return wrap;
+    }
+
+    function renderAreaModel(totalCols=10, rows=6, minusCols=1){
+      const wrap = document.createElement('div');
+      const caption = document.createElement('div'); caption.className='caption';
+      caption.innerHTML = `Model de arie: <b>${totalCols}×${rows}</b> minus <b>${minusCols}×${rows}</b>`;
+      wrap.appendChild(caption);
+
+      const grid = document.createElement('div'); grid.className='gridWrap';
+      for(let r=0; r<rows; r++){
+        for(let c=0; c<totalCols; c++){
+          const cell = document.createElement('div'); cell.className='box';
+          if(c < (totalCols - minusCols)) cell.classList.add('hi');
+          grid.appendChild(cell);
+        }
+      }
+      wrap.appendChild(grid);
+      const legend = document.createElement('div'); legend.className='legend';
+      legend.innerHTML = `<span><span class="swatch"></span> parte păstrată</span><span><span class="swatch2"></span> parte scăzută</span>`;
+      wrap.appendChild(legend);
+      return wrap;
+    }
+
+    // --- Items with visuals ---
+    const items=[
+      {id:'RR-01', prompt:'Sunt <b>6 grupe</b> a câte <b>5 inele</b>. Atinge grupele ca să numeri și scrie totalul.', answer:'30', hint:'Poți număra pe grupe: 5,10,15,20,25,30.', viz: ()=>renderRings(6,5), mini:'tap‑to‑count'},
+      {id:'RR-02', prompt:'Sunt <b>4 cutii</b> cu câte <b>7 inele</b>. Câte inele sunt? Se schimbă dacă aranjăm ca <b>7 cutii</b> a câte <b>4</b>?', answer:'28; nu, 4×7=7×4=28', hint:'Comutativitate: ordinea factorilor nu schimbă produsul.', viz: ()=>renderBoxes(4,7), mini:'vizualizare dublă'},
+      {id:'RR-03', prompt:'Calculează <b>9×6</b> folosind <b>(10×6)−(1×6)</b>. Uită‑te la modelul de arie.', answer:'54', hint:'10×6=60, apoi scazi 6.', viz: ()=>renderAreaModel(10,6,1), mini:'arie / distributivitate'},
+      // rest as simple (fără vizual pentru scurt demo)
+      {id:'RR-04', prompt:'Platformă voxel 8×7. Câte cuburi?', answer:'56', hint:'8×7'},
+      {id:'RR-05', prompt:'Eroul parcurge 3 camere/min. În 7 min, câte camere?', answer:'21', hint:'3×7'},
+      {id:'RR-06', prompt:'Portal ×1 cu 9 monede ⇒ ?, portal ×0 ⇒ ?', answer:'9 și 0', hint:'x×1=x; x×0=0'},
+      {id:'RR-07', prompt:'Completează: 6×4=?, 7×8=?, 9×3=? (separate prin virgule)', answer:'24,56,27', hint:'Calculează pe rând'},
+      {id:'RR-08', prompt:'42 inele împărțite la 6 prieteni. Câte per persoană?', answer:'7', hint:'42÷6'},
+      {id:'RR-09', prompt:'L‑shape: 6×4 lipit de 6×2. Total?', answer:'36', hint:'24+12'},
+      {id:'RR-10', prompt:'( (5+3)×2 )+4 = ?', answer:'20', hint:'8×2=16; +4'}
+    ];
+
+    let idx=0, score=0, bossQ=[], bossIdx=0, timeLeft=60, timerId=null;
+
+    function renderItem(){
+      const it=items[idx];
+      $('idx').textContent=idx+1; $('total').textContent=items.length;
+      $('prompt').innerHTML=it.prompt; $('hint').textContent=''; $('answer').value=''; $('result').textContent='';
+      $('miniNote').textContent = it.mini ? '• '+it.mini : '';
+      updateBar();
+      // render viz
+      const v = $('viz'); v.innerHTML='';
+      if(it.viz){ v.appendChild(it.viz()); } else { v.innerHTML = '<div class="mini">Fără ilustrație pentru acest item (demo scurt).</div>'; }
+      $('answer').focus();
+    }
+
+    function startSession(){ idx=0; score=0; $('score').textContent=score; show('screen-session'); renderItem(); }
+    function showHow(){ show('screen-how'); }
+    function backToIntro(){ show('screen-intro'); }
+
+    function submitAnswer(){
+      const it=items[idx]; const val=normalize($('answer').value);
+      const ok = val===normalize(it.answer);
+      $('result').innerHTML = ok? '<span class="ok">Corect!</span>' : '<span class="bad">Mai încearcă.</span>';
+      if(ok) score++; $('score').textContent=score;
+      setTimeout(()=>{ if(idx<items.length-1){ idx++; renderItem(); } else { startBoss(); } }, 600);
+    }
+
+    function showHint(){ $('hint').textContent = 'Indiciu: ' + items[idx].hint; }
+
+    function startBoss(){
+      bossQ=[
+        {p:'7×6', a:'42'}, {p:'56÷8', a:'7'}, {p:'9×3', a:'27'},
+        {p:'(10×6)−6', a:'54'}, {p:'3×7', a:'21'}, {p:'24+12', a:'36'}
+      ]; bossIdx=0; timeLeft=60; $('bossLeft').textContent=bossQ.length; $('bossResult').textContent='';
+      show('screen-boss'); renderBoss();
+      timerId && clearInterval(timerId);
+      timerId=setInterval(()=>{ timeLeft--; $('timer').textContent=timeLeft; if(timeLeft<=0){ clearInterval(timerId); finish(); } },1000);
+    }
+    function renderBoss(){ $('bossPrompt').textContent=bossQ[bossIdx].p; $('bossAnswer').value=''; $('bossAnswer').focus(); }
+    function bossSubmit(){
+      const ok = normalize($('bossAnswer').value)===normalize(bossQ[bossIdx].a);
+      $('bossResult').innerHTML = ok? '<span class=ok>✔</span>' : '<span class=bad>✘</span>';
+      if(ok) score++; $('score').textContent=score; bossIdx++; $('bossLeft').textContent=bossQ.length-bossIdx;
+      if(bossIdx>=bossQ.length){ clearInterval(timerId); finish(); } else { setTimeout(renderBoss, 400); }
+    }
+
+    function finish(){ show('screen-outro'); $('finalScore').textContent=score + ' / ' + (items.length + bossQ.length); }
+
+    // Bind events
+    window.addEventListener('DOMContentLoaded', ()=>{
+      $('btnStart').addEventListener('click', startSession);
+      $('btnHow').addEventListener('click', showHow);
+      $('btnBack').addEventListener('click', backToIntro);
+      $('btnCheck').addEventListener('click', submitAnswer);
+      $('btnHint').addEventListener('click', showHint);
+      $('btnBossSend').addEventListener('click', bossSubmit);
+      $('btnDone').addEventListener('click', backToIntro);
+      $('answer').addEventListener('keydown', (e)=>{ if(e.key==='Enter') submitAnswer(); });
+      $('bossAnswer').addEventListener('keydown', (e)=>{ if(e.key==='Enter') bossSubmit(); });
+      backToIntro();
+    });
+  })();
+  </script>
+</body>
+</html>
