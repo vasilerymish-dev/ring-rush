@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Epic Math Quest • World Select</title>
+  <style>
+    :root{--bg:#0f1226;--card:#171a33;--accent:#ffd54d;--text:#e9ecff;--muted:#9aa0c6;--ok:#6ce5b1;--bad:#ff7b7b}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,'Helvetica Neue',Arial,'Noto Sans','Apple Color Emoji','Segoe UI Emoji';background:linear-gradient(180deg,#0f1226,#0a0c1a);color:var(--text)}
+    .wrap{max-width:560px;margin:0 auto;padding:16px}
+    .card{background:var(--card);border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    h1{font-size:22px;margin:0 0 8px}
+    .subtitle{color:var(--muted);font-size:14px;margin-bottom:16px}
+    .btn{display:inline-block;background:var(--accent);color:#1e223f;border:none;border-radius:12px;padding:12px 16px;font-weight:700;cursor:pointer}
+    .btn.secondary{background:#2a2e55;color:var(--text)}
+    .grid{display:grid;gap:12px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .chip{background:#24284f;color:#cdd3ff;border-radius:999px;padding:10px 14px;cursor:pointer;border:1px solid #3a3f6a}
+    .chip.active{outline:2px solid var(--accent);color:#ffd54d}
+    .hud{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:14px;color:var(--muted)}
+    .progress{height:8px;background:#24284f;border-radius:999px;overflow:hidden}
+    .bar{height:100%;width:0;background:linear-gradient(90deg,#ffd54d,#ff9f3f)}
+    .q{font-size:18px;line-height:1.4;margin:12px 0}
+    .hint{font-size:14px;color:var(--muted);margin-top:8px}
+    input[type=text]{width:100%;padding:12px;border-radius:12px;border:1px solid #2a2e55;background:#12142a;color:var(--text)}
+    .result{margin-top:8px;font-weight:700}
+    .ok{color:var(--ok)} .bad{color:var(--bad)}
+    .viz{background:#0c0f24;border:1px solid #2a2e55;border-radius:14px;padding:10px;margin:10px 0}
+    .center{text-align:center}
+    .boss{border:2px solid #444872}
+    .mini{font-size:12px;color:#9aa0c6}
+    .ring{width:26px;height:26px;border-radius:50%;border:5px solid #ffd54d;background:transparent;box-shadow:inset 0 0 0 6px #0c0f24,0 1px 3px rgba(0,0,0,.5);margin:3px;display:inline-block}
+    .ring.on{filter:brightness(1.2) drop-shadow(0 0 4px #ffdd66)}
+    .group{display:flex;gap:6px;justify-content:center;margin:6px 0;cursor:pointer}
+    .box{width:22px;height:22px;background:#2a2e55;border:1px solid #3c4272;border-radius:4px;display:inline-block;margin:2px}
+    .box.hi{background:#6b78ff}
+    .gridWrap{display:grid;grid-template-columns:repeat(10,22px);gap:3px;justify-content:center}
+    .legend{display:flex;gap:10px;justify-content:center;margin-top:6px}
+    .legend span{display:flex;align-items:center;gap:6px;font-size:12px;color:#cdd3ff}
+    .swatch{width:16px;height:16px;background:#6b78ff;border-radius:3px;border:1px solid #3c4272}
+    .swatch2{width:16px;height:16px;background:#2a2e55;border-radius:3px;border:1px solid #3c4272}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" id="screen-worlds">
+      <h1>Epic Math Quest</h1>
+      <div class="subtitle">Alege lumea și pornește aventura. La final te așteaptă <b>Final Boss</b>!</div>
+      <div class="row" id="worldChips"></div>
+      <div class="grid" style="margin-top:12px">
+        <button class="btn" id="btnStart">Începe aventura</button>
+        <button class="btn secondary" id="btnAll">Joacă toate lumile</button>
+      </div>
+    </div>
+
+    <div class="card" id="screen-session" style="display:none">
+      <div class="hud">
+        <div><span id="worldName"></span> • Item <span id="idx">1</span>/<span id="total">10</span></div>
+        <div>Scor: <span id="score">0</span></div>
+      </div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="q" id="prompt"></div>
+      <div class="viz" id="viz"></div>
+      <input id="answer" type="text" placeholder="Răspunsul tău" />
+      <div class="hint" id="hint"></div>
+      <div class="result" id="result"></div>
+      <div class="grid" style="margin-top:12px">
+        <button class="btn" id="btnCheck">Verifică</button>
+        <button class="btn secondary" id="btnHint">Arată indiciu</button>
+      </div>
+    </div>
+
+    <div class="card boss" id="screen-boss" style="display:none">
+      <h1>FINAL BOSS</h1>
+      <div class="subtitle">Rezolvă repede setul! (timp limitat)</div>
+      <div class="hud">
+        <div>Rămase: <span id="bossLeft">0</span></div>
+        <div>Timp: <span id="timer">60</span>s</div>
+      </div>
+      <div class="q" id="bossPrompt"></div>
+      <input id="bossAnswer" type="text" placeholder="Răspuns" />
+      <div class="result" id="bossResult"></div>
+      <div class="grid" style="margin-top:12px">
+        <button class="btn" id="btnBossSend">Trimite</button>
+      </div>
+    </div>
+
+    <div class="card center" id="screen-outro" style="display:none">
+      <h1>Bravo! 💫</h1>
+      <p>Scor total: <b id="finalScore"></b></p>
+      <button class="btn" id="btnHome">Înapoi la lumi</button>
+    </div>
+  </div>
+
+  <script id="epic-csv" type="text/plain">id,world,story,learning_goal,mechanic,prompt,answer,hints,image_prompt,video_script_30s,next_id
+RR-01,"Ring Rush (speed)","Tu ești Runner-ul Albastru. Lupți contra timpului pe o buclă de viteză.","Skip-counting & multiplicare în 5 și 10.","tap-to-count groups","Pe pistă sunt 6 grupe a câte 5 inele. Atinge grupele și scrie totalul.","30","Numără 5,10,15,20,25,30 sau 6×5.","Side-scroller speed track with glowing gold rings in groups of five; motion blur; loop in background.","Arată pista; șase grupe de inele. Narator: 'Numărăm pe grupe: 5,10,15...' Zoom pe fiecare grup.","RR-02"
+RR-02,"Ring Rush (speed)","Sprint peste un arc cu arcuri elastice.","Comutativitatea înmulțirii.","rearrange groups","Sunt 4 cutii a câte 7 inele. Câte inele? Dacă întoarcem ordinea (7 cutii a câte 4), se schimbă?","28; nu, 4×7=7×4=28","Schimbarea ordinii factorilor nu schimbă produsul.","Four crates labeled 7 rings; arrows flipping to seven crates of 4.","Animație: 4×7 devine 7×4; numărul rămâne 28.","RR-03"
+RR-03,"Ring Rush (speed)","Un zid energetic blochează pista.","Distributivitate: (10×6)−(1×6).","area model","Calculează 9×6 folosind un dreptunghi 10×6 minus o coloană 1×6.","54","10×6=60; 60−6=54.","Grid 10x6 with last column dimmed; highlight 9x6 kept area.","Desenează 10×6, apoi tai o coloană; rămân 54.","RR-04"
+RR-04,"Ring Rush (speed)","Portal cu regulile ×1 și ×0.","Înmulțirea cu 1 și 0.","choose-portal","Intră cu 9 inele. Ce iese prin portalul ×1? Dar prin ×0?","9 și 0","x×1=x; x×0=0.","Two glowing portals labeled ×1 and ×0; coins/rings flowing through.","Animă 9→×1 rămâne 9; 9→×0 devine 0.","HZ-01"
+HZ-01,"Hero of Realms (adventure)","Eroul intră într-un templu cu 3 camere pe minut.","Rate (viteză × timp).","path-counter","Parcurge 3 camere pe minut. În 7 minute, câte camere trece?","21","3×7.","Top-down dungeon with rooms per minute markers and a ticking lantern.","Cronometru; trasează 7 minute cu câte 3 camere fiecare.","HZ-02"
+HZ-02,"Hero of Realms (adventure)","Ușa pietrei cere o împărțire echitabilă a cristalelor între 6 gardieni.","Împărțire ca invers al înmulțirii.","split piles","Sunt 42 cristale de împărțit la 6 gardieni. Câte primește fiecare?","7","42÷6=7 deoarece 7×6=42.","Blue crystals split into 6 equal bowls on a stone altar.","Împarte 42 în 6 boluri egale; numără 7 în fiecare.","HZ-03"
+HZ-03,"Hero of Realms (adventure)","Sala comorii are două platforme lipite într-un L.","Distributivitate: a(b+c)=ab+ac.","compose shapes","Platformă L: dreptunghi 6×4 lipit de 6×2. Scrie calculul și totalul de cuburi.","6×(4+2)=6×6=36; sau 24+12=36","Împarte și adună ariile.","L-shaped tiles on temple floor; two rectangles colored differently.","Separa L-ul în două dreptunghiuri; afișează calculul.","HZ-04"
+HZ-04,"Hero of Realms (adventure)","Un sigiliu magic cere ordinea corectă a operațiilor.","Paranteze și ordinea operațiilor.","unlock sequence","Ai 5 gem-uri. Mai întâi adaugi 3, apoi dublezi totul și adaugi 4: ((5+3)×2)+4 = ?","20","5+3=8; 8×2=16; +4=20.","Runes showing +3, ×2, +4 in order to open a stone door.","Aplică operațiile în ordinea corectă; ușa se deschide.","VF-01"
+VF-01,"Voxel Forge (blocks)","Construiești un pod dreptunghiular din cuburi.","Arie ca număr de unități (multiplicare).","build grid","Podul are 9 rânduri a câte 8 cuburi. Câte cuburi total?","72","9×8=72.","Top-down voxel bridge 9x8 units over lava.","Umple o grilă 9×8 cu cuburi; numără pe linii.","VF-02"
+VF-02,"Voxel Forge (blocks)","Menghina de lucru combină materiale în loturi egale.","Împărțire cu rest zero.","craft batches","Ai 63 bare și faci pachete egale de 9. Câte pachete ies?","7","63÷9=7.","Workbench crafting 63 ingots into stacks of 9.","Grupuri egale de 9 apar pe masa de lucru.","VF-03"
+VF-03,"Voxel Forge (blocks)","Sapi minereu într-un tunel.","Fracții ca părți din întreg.","shade fraction","Tunelul are 12 segmente egale; 3 sunt cu minereu de aur. Ce fracție reprezintă aurul?","3/12 = 1/4","Simplifică împărțind la 3.","12 tunnel segments; 3 golden, 9 stone.","Colorează 3 din 12 segmente și simplifică la 1/4.","VF-04"
+VF-04,"Voxel Forge (blocks)","Rețeta cere proporții corecte nisip:sticlă.","Raport simplu și multiplicare.","ratio scale-up","Raportul este 3:1 (nisip:sticlă). Pentru 8 sticle, câte unități de nisip ai nevoie?","24","Fiecare sticlă → 3 nisip; 8×3.","Recipe board showing ratio 3 sand icons to 1 glass icon; target 8 bottles.","Scalăm raportul: înmulțim ambele părți cu 8.","PP-01"
+PP-01,"Pipe Portals (platform)","Monedele trec prin țevi misterioase.","Multiplicare cu 2, 5 și 10 (patternuri).","choose pipe","Ai 12 monede. Țeava A dublează, Țeava B înmulțește cu 5. Ce alegi ca să obții mai multe? Scrie rezultatele ambelor.","A: 24, B: 60; aleg B pentru mai multe.","12×2=24; 12×5=60.","Two pipes labeled ×2 and ×5; coins streaming with counters.","Compară rezultatele; evidențiază ×5 ca mai mare.","PP-02"
+PP-02,"Pipe Portals (platform)","Cărămizi cu numere ascund bonusuri.","Ordinea operațiilor și paranteze.","mystery block sequence","(4+6)×3 − 5 = ?","25","10×3=30; −5=25.","Blocks with +, ×, − sequence; result counter.","Aplică parantezele, apoi operațiile în ordine.","PP-03"
+PP-03,"Pipe Portals (platform)","Timpul îți scade viața; adună stele pentru puncte.","Procente ușoare (creștere).","percent gain","Aveai 200 puncte. O stea îți crește scorul cu 10%. Câte puncte ai după 1 stea? Dar după 2 stele consecutive?","220; 242","+10% = ×1,10; apoi încă ×1,10.","Scoreboard showing +10% star boosts applied twice.","Aplică ×1.1 de două ori: 200→220→242.","PP-04"
+PP-04,"Pipe Portals (platform)","Țevile duc la arena Boss-ului.","Recapitulare mixtă înainte de test final.","quick mix","Completează rapid: 6×4=?, 56÷8=?, 9×3=?, 3/12 simplificat=?, (5+3)×2=?","24,7,27,1/4,16","Folosește trucuri: dublări, descompuneri, simplificări.","Checklist of five quick questions with a timer icon.","Cut quick-fire pe cinci item-uri cu cronometru.","BOSS"
+BOSS,"Final Boss","Învinge Boss-ul prin 10 întrebări mixte în 90s (≥90% corect).","Mastery check: multiplicare/împărțire/fracții/ordine.","timed boss fight","Rezolvă setul generat (produsuri, împărțiri, arii, fracții).","Dinamic (generator)","Respiră, sari peste ce e greu, revino apoi.","Epic shadow boss with progress bar and coin/ring counters.","Bară de viață scade la răspuns corect; recapitulare scor.",""
+</script>
+
+  <script>
+    function splitCSVLine(line){let c=[],cur='',q=false;for(let i=0;i<line.length;i++){let ch=line[i];if(q){if(ch==='"'){if(line[i+1]==='"'){cur+='"';i++;}else{q=false;}}else{cur+=ch;}}else{if(ch===','){c.push(cur);cur='';}else if(ch==='"'){q=true;}else{cur+=ch;}}}c.push(cur);return c;}
+    function parseCSV(text){text=text.trim();const lines=text.split(/\r?\n/);const head=splitCSVLine(lines[0]);const rows=[];for(let i=1;i<lines.length;i++){if(!lines[i].trim()) continue;const cells=splitCSVLine(lines[i]);const o={};for(let j=0;j<head.length;j++) o[head[j]]=cells[j]||'';rows.push(o);}return rows;}
+    const CSV_DATA=document.getElementById('epic-csv').textContent;
+    const DATA=parseCSV(CSV_DATA);
+    const WORLDS=[...new Set(DATA.map(r=>r.world).filter(w=>w && w!=='Final Boss'))];
+
+    const $=id=>document.getElementById(id);
+    function hide(...ids){ids.forEach(i=>$(i).style.display='none');}
+    function show(id){hide('screen-worlds','screen-session','screen-boss','screen-outro');$(id).style.display='block';}
+    function strip(s){return (s||'').toString().normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+    function norm(s){return strip((s||'').toLowerCase().trim()).replace(/\s*,\s*/g,',').replace(/\s+/g,' ');}
+    function updateBar(){ $('bar').style.width=((idx)/items.length*100)+'%'; }
+
+    function vizRings(groups=6,per=5){const v=document.createElement('div');let total=0;let cap=document.createElement('div');cap.className='mini';cap.innerHTML='Atinge grupele pentru a număra: <b id="ringCount">0</b>';v.appendChild(cap);for(let g=0;g<groups;g++){const row=document.createElement('div');row.className='group';let on=false;row.addEventListener('click',()=>{on=!on;row.querySelectorAll('.ring').forEach(el=>el.classList.toggle('on',on));total+=(on?per:-per);$('ringCount').textContent=total;$('answer').value=String(total);});for(let i=0;i<per;i++){const r=document.createElement('span');r.className='ring';row.appendChild(r);}v.appendChild(row);}return v;}
+    function vizBoxes(a=4,b=7){const v=document.createElement('div');const r1=document.createElement('div');r1.className='mini';r1.textContent=`Aranjare ${a}×${b}`;v.appendChild(r1);const g1=document.createElement('div');for(let i=0;i<a*b;i++){{const el=document.createElement('span');el.className='box'+(i% b===0?' hi':'');g1.appendChild(el);}}v.appendChild(g1);const r2=document.createElement('div');r2.className='mini';r2.textContent=`Aranjare ${b}×${a}`;v.appendChild(r2);const g2=document.createElement('div');for(let i=0;i<a*b;i++){{const el=document.createElement('span');el.className='box hi';g2.appendChild(el);}}v.appendChild(g2);return v;}
+    function vizAreaModel(totalCols=10,rows=6,minusCols=1){const v=document.createElement('div');const grid=document.createElement('div');grid.className='gridWrap';for(let r=0;r<rows;r++){for(let c=0;c<totalCols;c++){const cell=document.createElement('span');cell.className='box';if(c<totalCols-minusCols) cell.classList.add('hi');grid.appendChild(cell);}}v.appendChild(grid);const leg=document.createElement('div');leg.className='legend';leg.innerHTML='<span><span class="swatch"></span> păstrat</span><span><span class="swatch2"></span> scăzut</span>';v.appendChild(leg);return v;}
+    function vizSplit(total=42,parts=6){const v=document.createElement('div');for(let p=0;p<parts;p++){const bowl=document.createElement('div');bowl.style.margin='6px 0';for(let i=0;i<Math.floor(total/parts);i++){const el=document.createElement('span');el.className='ring on';bowl.appendChild(el);}v.appendChild(bowl);}return v;}
+    function vizGrid(w=9,h=8){const v=document.createElement('div');for(let r=0;r<h;r++){const row=document.createElement('div');for(let c=0;c<w;c++){const el=document.createElement('span');el.className='box hi';row.appendChild(el);}v.appendChild(row);}return v;}
+    function vizFraction(n=3,d=12){const v=document.createElement('div');for(let i=1;i<=d;i++){const el=document.createElement('span');el.className='box';if(i<=n) el.classList.add('hi');v.appendChild(el);}const mini=document.createElement('div');mini.className='mini';mini.textContent=`${n}/${d}`;v.appendChild(mini);return v;}
+    function vizPipes(){const v=document.createElement('div');const mini=document.createElement('div');mini.className='mini';mini.textContent='Compară ×2 vs ×5';v.appendChild(mini);const row=document.createElement('div');row.className='row';['×2','×5'].forEach(t=>{const b=document.createElement('div');b.className='chip';b.textContent=t;row.appendChild(b);});v.appendChild(row);return v;}
+
+    function renderViz(item){
+      const m = (item.mechanic||'').trim().toLowerCase();
+      if(m.includes('tap-to-count')) return vizRings(6,5);
+      if(m.includes('rearrange')) return vizBoxes(4,7);
+      if(m.includes('area')) return vizAreaModel(10,6,1);
+      if(m.includes('choose-portal')) return vizPipes();
+      if(m.includes('path-counter')) return vizGrid(7,3);
+      if(m.includes('split')) return vizSplit(42,6);
+      if(m.includes('compose')) return vizAreaModel(6,6,0);
+      if(m.includes('build grid')) return vizGrid(8,9);
+      if(m.includes('shade fraction')) return vizFraction(3,12);
+      if(m.includes('ratio')) return vizGrid(8,3);
+      if(m.includes('choose pipe')) return vizPipes();
+      return document.createElement('div');
+    }
+
+    let selectedWorld = null;
+    let items=[]; let idx=0; let score=0;
+
+    function setupWorldChips(){
+      const c=$('worldChips'); c.innerHTML='';
+      const worlds=[...new Set(DATA.filter(r=>r.world && r.world!=='Final Boss').map(r=>r.world))];
+      if(!selectedWorld) selectedWorld = worlds[0] || 'Ring Rush (speed)';
+      worlds.forEach(w=>{const chip=document.createElement('div'); chip.className='chip'+(w===selectedWorld?' active':''); chip.textContent=w; chip.onclick=()=>{selectedWorld=w; setupWorldChips();}; c.appendChild(chip);});
+    }
+    setupWorldChips();
+
+    function startWorld(all=false){
+      const base=DATA.filter(r=>r.id!=='BOSS');
+      items = all ? base : base.filter(r=>r.world===selectedWorld);
+      $('worldName').textContent = all ? 'Toate lumile' : selectedWorld;
+      idx=0; score=0; $('score').textContent=0; $('total').textContent=items.length; show('screen-session'); renderItem();
+    }
+
+    function renderItem(){
+      const it=items[idx];
+      $('idx').textContent=idx+1;
+      $('prompt').innerHTML = `<div class='mini'>${(it.story||'').replace(/</g,'&lt;')}</div><div style='margin-top:6px'>${it.prompt}</div>`;
+      $('hint').textContent=''; $('result').textContent=''; $('answer').value='';
+      $('viz').innerHTML=''; $('viz').appendChild(renderViz(it));
+      updateBar(); $('answer').focus();
+    }
+
+    function answersEqual(user, gold, item){
+      const u=norm(user); const g=norm(gold);
+      const mech=(item.mechanic||'').toLowerCase();
+      if(mech.includes('rearrange')){ return u.replace(/[^0-9]/g,'')==='28'; }
+      if(mech.includes('choose-portal')){
+        const nums=u.replace(/[^0-9, ]/g,'').split(/[,\s]+/).filter(Boolean);
+        return nums.includes('9') && nums.includes('0');
+      }
+      if(mech.includes('percent')){
+        const s=u.replace(/[^0-9, ]/g,'').split(/[,\s]+/).filter(Boolean).join(',');
+        return s==='220,242';
+      }
+      if(g.includes(',')){
+        const a=u.split(',').map(s=>s.trim()); const b=g.split(',').map(s=>s.trim());
+        return a.length===b.length && a.every((x,i)=>x===b[i]);
+      }
+      return u===g;
+    }
+
+    function submitAnswer(){
+      const it=items[idx];
+      const ok = answersEqual($('answer').value, it.answer, it);
+      $('result').innerHTML = ok? '<span class="ok">Corect!</span>' : '<span class="bad">Mai încearcă.</span>';
+      if(ok) score++; $('score').textContent=score;
+      setTimeout(()=>{ if(idx<items.length-1){ idx++; renderItem(); } else { startBoss(); } }, 600);
+    }
+    function showHint(){ $('hint').textContent='Indiciu: '+(items[idx].hints||''); }
+
+    let bossQ=[], bIdx=0, timerId=null, timeLeft=60;
+    function startBoss(){
+      bossQ=[
+        {p:'7×6',a:'42'},{p:'56÷8',a:'7'},{p:'9×3',a:'27'},
+        {p:'(10×6)−6',a:'54'},{p:'3×7',a:'21'},{p:'24+12',a:'36'}
+      ]; bIdx=0; $('bossLeft').textContent=bossQ.length; $('bossResult').textContent=''; $('timer').textContent=60; timeLeft=60;
+      show('screen-boss'); renderBoss();
+      clearInterval(timerId); timerId=setInterval(()=>{ timeLeft--; $('timer').textContent=timeLeft; if(timeLeft<=0){ clearInterval(timerId); finish(); } },1000);
+    }
+    function renderBoss(){ $('bossPrompt').textContent=bossQ[bIdx].p; $('bossAnswer').value=''; $('bossAnswer').focus(); }
+    function bossSubmit(){ const ok = norm($('bossAnswer').value)===norm(bossQ[bIdx].a); $('bossResult').innerHTML = ok? '<span class=ok>✔</span>' : '<span class=bad>✘</span>'; if(ok) score++; $('score').textContent=score; bIdx++; $('bossLeft').textContent=bossQ.length-bIdx; if(bIdx>=bossQ.length){ clearInterval(timerId); finish(); } else { setTimeout(renderBoss, 400); } }
+    function finish(){ show('screen-outro'); $('finalScore').textContent=score+' / '+(items.length + bossQ.length); }
+
+    window.addEventListener('DOMContentLoaded', ()=>{
+      $('btnStart').onclick=()=>startWorld(false);
+      $('btnAll').onclick=()=>startWorld(true);
+      $('btnCheck').onclick=submitAnswer;
+      $('btnHint').onclick=showHint;
+      $('btnBossSend').onclick=bossSubmit;
+      $('btnHome').onclick=()=>show('screen-worlds');
+      show('screen-worlds');
+    });
+  </script>
+</body>
+</html>
